@@ -3,10 +3,10 @@
     <item android:id="@+id/action_feed"
         android:title="@string/menu_feed"
         android:icon="@drawable/ic_launcher_background"/>
-    <item android:id="@+id/action_chat"
+    <item android:id="@+id/action_gallery"
         android:title="@string/menu_gallery"
         android:icon="@drawable/ic_launcher_background"/>
-    <item android:id="@+id/action_my"
+    <item android:id="@+id/action_star"
         android:title="@string/menu_star"
         android:icon="@drawable/ic_launcher_background"/>
 </menu>
