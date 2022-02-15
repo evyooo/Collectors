@@ -5,18 +5,25 @@ import android.app.Activity
 import android.content.ContentValues
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
+import android.graphics.*
 import android.net.Uri
 import android.os.Build
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.provider.MediaStore
+import android.util.Log
+import android.view.View
+import android.widget.Button
+import android.widget.ImageView
+import android.widget.ImageView.ScaleType
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.yoo.collectors.databinding.ActivityImageEditBinding
-import com.yoo.collectors.databinding.ActivityMainBinding
 import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+
 
 class ImageEditActivity : AppCompatActivity() {
 
@@ -28,6 +35,10 @@ class ImageEditActivity : AppCompatActivity() {
     val CAMERA_CODE = 98
     val STORAGE_CODE = 99
 
+    // TODO 나중에 vm으로 옮기기
+    private lateinit var selected: ImageView
+
+    lateinit var imageList: Array<ImageView>
     private lateinit var binding: ActivityImageEditBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,14 +47,21 @@ class ImageEditActivity : AppCompatActivity() {
         binding = ActivityImageEditBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        binding.button2.setOnClickListener {
-            callCamera()
+        with(binding) {
+            imageList = arrayOf(
+                imageView, imageView2, imageView3, imageView4
+            )
+
+            imageList.forEach { img ->
+                img.setOnClickListener {
+                    selected = img
+                    selectDialog()
+                }
+            }
         }
 
-        binding.button3.setOnClickListener {
-            getAlbum()
-        }
     }
+
 
     override fun onRequestPermissionsResult(
         requestCode: Int,
@@ -71,21 +89,6 @@ class ImageEditActivity : AppCompatActivity() {
         }
     }
 
-//    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-//        super.onActivityResult(requestCode, resultCode, data)
-//
-//        if (resultCode == Activity.RESULT_OK) {
-//            when (requestCode) {
-//                CAMERA_CODE -> {
-//                    if (data?.extras?.get("data") != null) {
-//                        val img = data.extras?.get("data") as Bitmap
-//                        binding.imageView.setImageBitmap(img)
-//                    }
-//                }
-//            }
-//        }
-//    }
-
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
@@ -93,17 +96,40 @@ class ImageEditActivity : AppCompatActivity() {
             when (requestCode) {
                 CAMERA_CODE -> {
                     if (data?.extras?.get("data") != null) {
-                        val img = data?.extras?.get("data") as Bitmap
+                        val img = data.extras?.get("data") as Bitmap
 //                        val uri = saveFile(RandomFileName(), "image/jpg", img)
-                        binding.imageView.setImageBitmap(img)
+                        selected.setImageBitmap(img)
                     }
                 }
 
                 STORAGE_CODE -> {
                     val uri = data?.data
-                    binding.imageView.setImageURI(uri)
+                    selected.setImageURI(uri)
                 }
             }
+        }
+    }
+
+    fun selectDialog(){
+        val dialog = BottomSheetDialog(this)
+        val view = layoutInflater.inflate(R.layout.dialog_select, null)
+
+        dialog.setContentView(view)
+        dialog.show()
+
+        val camera = view.findViewById<Button>(R.id.camera_btn_select)
+        val gallery = view.findViewById<Button>(R.id.gallery_btn_select)
+
+        camera.setOnClickListener {
+            callCamera()
+            dialog.dismiss()
+            dialog.cancel()
+        }
+
+        gallery.setOnClickListener {
+            getAlbum()
+            dialog.dismiss()
+            dialog.cancel()
         }
     }
 
@@ -116,11 +142,11 @@ class ImageEditActivity : AppCompatActivity() {
                 ) != PackageManager.PERMISSION_GRANTED
             ) {
                 ActivityCompat.requestPermissions(this, permissions, type)
-                return false;
+                return false
             }
         }
 
-        return true;
+        return true
     }
 
     private fun callCamera() {
@@ -136,6 +162,12 @@ class ImageEditActivity : AppCompatActivity() {
             itt.type = MediaStore.Images.Media.CONTENT_TYPE
             startActivityForResult(itt, STORAGE_CODE)
         }
+    }
+
+    fun RandomFileName() : String
+    {
+        val fineName = SimpleDateFormat("yyyyMMddHHmmss").format(System.currentTimeMillis())
+        return fineName
     }
 
     fun saveFile(fileName: String, mimeType: String, bitmap: Bitmap): Uri? {
