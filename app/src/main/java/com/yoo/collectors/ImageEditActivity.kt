@@ -10,7 +10,6 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Point
 import android.graphics.RectF
-import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -166,8 +165,8 @@ class ImageEditActivity : AppCompatActivity() {
 //                    selected.setImageURI(uri)
 
                     // 여기서 크롭
-
-                    Glide.with(this).load(uri)
+                    val img = MediaStore.Images.Media.getBitmap(this.contentResolver, uri)
+                    Glide.with(this).load(scaleCenterCrop(img, selectedImg.imageView.measuredWidth, selectedImg.imageView.measuredHeight))
                         .apply(RequestOptions.bitmapTransform(MaskTransformation(selectedImg.cropImg)))
                         .into(selectedImg.imageView)
                 }
