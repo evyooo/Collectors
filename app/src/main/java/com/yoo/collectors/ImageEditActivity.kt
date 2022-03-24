@@ -5,22 +5,29 @@ import android.app.Activity
 import android.content.ContentValues
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.*
+import android.content.res.Resources
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Point
+import android.graphics.RectF
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
-import android.util.Log
-import android.view.View
+import android.util.DisplayMetrics
 import android.widget.Button
 import android.widget.ImageView
-import android.widget.ImageView.ScaleType
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.bumptech.glide.Glide
+import com.bumptech.glide.request.RequestOptions
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.yoo.collectors.databinding.ActivityImageEditBinding
+import jp.wasabeef.glide.transformations.MaskTransformation
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 
@@ -36,9 +43,11 @@ class ImageEditActivity : AppCompatActivity() {
     val STORAGE_CODE = 99
 
     // TODO 나중에 vm으로 옮기기
-    private lateinit var selected: ImageView
+    private lateinit var selectedImg: CropImage
 
     lateinit var imageList: Array<ImageView>
+    lateinit var cropList: Array<Int>
+
     private lateinit var binding: ActivityImageEditBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,14 +61,60 @@ class ImageEditActivity : AppCompatActivity() {
                 imageView, imageView2, imageView3, imageView4
             )
 
-            imageList.forEach { img ->
+            cropList = arrayOf(
+                R.drawable.crop1, R.drawable.crop2, R.drawable.crop3, R.drawable.crop4
+            )
+
+            for (i in imageList.indices) {
+                val img = imageList[i]
                 img.setOnClickListener {
-                    selected = img
+                    selectedImg = CropImage(img, cropList[i])
                     selectDialog()
                 }
             }
+
+
+            // ㅅㅏ이즈 맞추기 임시
+            val size = Point()
+            windowManager.defaultDisplay.getRealSize(size)
+            val sizewidth = size.x
+            val displayMetrics = DisplayMetrics()
+            windowManager.defaultDisplay.getMetrics(displayMetrics)
+            val density = displayMetrics.density
+
+            val height = (sizewidth - (40 * density)) * 5f / 3
+            imageView7.layoutParams.height = convertPixelsToDp(height)
+            imageList.forEach { img ->
+                val calc = sizewidth * 32f / 125
+                img.layoutParams.width = calc.toInt()
+                img.layoutParams.height = calc.toInt()
+            }
+
+            setRightMargin(imageView, ((sizewidth - (40 * density)) * 16 / 1000).toInt())
+            setTopMargin(imageView2, ((sizewidth - (40 * density)) * 36 / 1000).toInt())
+            setRightMargin(imageView2, ((sizewidth - (40 * density)) * 45 / 1000).toInt())
+            setTopMargin(imageView4, ((sizewidth - (40 * density)) * 24 / 1000).toInt())
+
         }
 
+    }
+
+    // TODO 클래스로 바꾸기
+    // px을 dp로 변환 (px을 입력받아 dp를 리턴)
+    private fun convertPixelsToDp(px: Float): Int {
+        val resources: Resources = this.resources
+        val metrics: DisplayMetrics = resources.displayMetrics
+        return (px / (metrics.densityDpi.toFloat() / DisplayMetrics.DENSITY_DEFAULT)).toInt()
+    }
+
+    private fun setRightMargin(imageView: ImageView, int: Int) {
+        val layoutParams: ConstraintLayout.LayoutParams = imageView.layoutParams as ConstraintLayout.LayoutParams
+        layoutParams.marginEnd = int
+    }
+
+    private fun setTopMargin(imageView: ImageView, int: Int) {
+        val layoutParams: ConstraintLayout.LayoutParams = imageView.layoutParams as ConstraintLayout.LayoutParams
+        layoutParams.topMargin = int
     }
 
 
@@ -98,16 +153,58 @@ class ImageEditActivity : AppCompatActivity() {
                     if (data?.extras?.get("data") != null) {
                         val img = data.extras?.get("data") as Bitmap
 //                        val uri = saveFile(RandomFileName(), "image/jpg", img)
-                        selected.setImageBitmap(img)
+//                        selected.setImageBitmap(img)
+
+                        Glide.with(this).load(scaleCenterCrop(img, selectedImg.imageView.measuredWidth, selectedImg.imageView.measuredHeight))
+                            .apply(RequestOptions.bitmapTransform(MaskTransformation(selectedImg.cropImg)))
+                            .into(selectedImg.imageView)
                     }
                 }
 
                 STORAGE_CODE -> {
                     val uri = data?.data
-                    selected.setImageURI(uri)
+//                    selected.setImageURI(uri)
+
+                    // 여기서 크롭
+
+                    Glide.with(this).load(uri)
+                        .apply(RequestOptions.bitmapTransform(MaskTransformation(selectedImg.cropImg)))
+                        .into(selectedImg.imageView)
                 }
             }
         }
+    }
+
+    fun scaleCenterCrop(source: Bitmap, newHeight: Int, newWidth: Int): Bitmap? {
+        val sourceWidth = source.width
+        val sourceHeight = source.height
+
+        // Compute the scaling factors to fit the new height and width, respectively.
+        // To cover the final image, the final scaling will be the bigger
+        // of these two.
+        val xScale = newWidth.toFloat() / sourceWidth
+        val yScale = newHeight.toFloat() / sourceHeight
+        val scale = Math.max(xScale, yScale)
+
+        // Now get the size of the source bitmap when scaled
+        val scaledWidth = scale * sourceWidth
+        val scaledHeight = scale * sourceHeight
+
+        // Let's find out the upper left coordinates if the scaled bitmap
+        // should be centered in the new size give by the parameters
+        val left = (newWidth - scaledWidth) / 2
+        val top = (newHeight - scaledHeight) / 2
+
+        // The target rectangle for the new, scaled version of the source bitmap will now
+        // be
+        val targetRect = RectF(left, top, left + scaledWidth, top + scaledHeight)
+
+        // Finally, we create a new bitmap of the specified size and draw our new,
+        // scaled bitmap onto it.
+        val dest = Bitmap.createBitmap(newWidth, newHeight, source.config)
+        val canvas = Canvas(dest)
+        canvas.drawBitmap(source, null, targetRect, null)
+        return dest
     }
 
     fun selectDialog(){
@@ -199,4 +296,9 @@ class ImageEditActivity : AppCompatActivity() {
 
         return uri;
     }
+
+    data class CropImage(
+        var imageView: ImageView,
+        var cropImg: Int
+    )
 }
