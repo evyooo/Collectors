@@ -12,5 +12,9 @@ class SelectActivity : AppCompatActivity() {
         binding = ActivitySelectBinding.inflate(layoutInflater)
 
         setContentView(binding.root)
+
+        binding.rootConslaySelect.setOnClickListener {
+            finish()
+        }
     }
 }
