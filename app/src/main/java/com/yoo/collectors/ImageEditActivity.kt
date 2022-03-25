@@ -15,6 +15,7 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.util.DisplayMetrics
+import android.util.Log
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.Toast
@@ -22,6 +23,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.marginRight
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -81,29 +83,29 @@ class ImageEditActivity : AppCompatActivity() {
             windowManager.defaultDisplay.getMetrics(displayMetrics)
             val density = displayMetrics.density
 
-            val height = (sizewidth - (40 * density)) * 5f / 3
-            imageView7.layoutParams.height = convertPixelsToDp(height)
+//            val width = (sizewidth - (40 * density))
+            val width = sizewidth
+
+            val height = width * 3f / 5
+            imageView7.layoutParams.height = height.toInt()
             imageList.forEach { img ->
-                val calc = sizewidth * 32f / 125
+                val calc = width * 32f / 125
                 img.layoutParams.width = calc.toInt()
                 img.layoutParams.height = calc.toInt()
             }
 
-            setRightMargin(imageView, ((sizewidth - (40 * density)) * 16 / 1000).toInt())
-            setTopMargin(imageView2, ((sizewidth - (40 * density)) * 36 / 1000).toInt())
-            setRightMargin(imageView2, ((sizewidth - (40 * density)) * 45 / 1000).toInt())
-            setTopMargin(imageView4, ((sizewidth - (40 * density)) * 24 / 1000).toInt())
+            Log.d("margin", "$width ${width * 16f / 1000} ${(width * 16f / 1000).toInt()} ")
+            Log.d("margin", "$width ${width * 36f / 1000} ${(width * 36f / 1000).toInt()} ")
+            Log.d("margin", "$width ${width * 45f / 1000} ${(width * 45f / 1000).toInt()} ")
+            Log.d("margin", "$width ${width * 24f / 1000} ${(width * 24f / 1000).toInt()} ")
+
+            setRightMargin(imageView, (width * 16f / 1000).toInt())
+            setTopMargin(imageView2, (width * 36f / 1000).toInt())
+            setRightMargin(imageView2, (width * 45f / 1000).toInt())
+            setTopMargin(imageView4, (width * 24f / 1000).toInt())
 
         }
 
-    }
-
-    // TODO 클래스로 바꾸기
-    // px을 dp로 변환 (px을 입력받아 dp를 리턴)
-    private fun convertPixelsToDp(px: Float): Int {
-        val resources: Resources = this.resources
-        val metrics: DisplayMetrics = resources.displayMetrics
-        return (px / (metrics.densityDpi.toFloat() / DisplayMetrics.DENSITY_DEFAULT)).toInt()
     }
 
     private fun setRightMargin(imageView: ImageView, int: Int) {
@@ -293,7 +295,7 @@ class ImageEditActivity : AppCompatActivity() {
             }
         }
 
-        return uri;
+        return uri
     }
 
     data class CropImage(
