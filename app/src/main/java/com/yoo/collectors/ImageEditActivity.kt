@@ -209,26 +209,28 @@ class ImageEditActivity : AppCompatActivity() {
     }
 
     fun selectDialog(){
-        val dialog = BottomSheetDialog(this)
-        val view = layoutInflater.inflate(R.layout.dialog_select, null)
-
-        dialog.setContentView(view)
-        dialog.show()
-
-        val camera = view.findViewById<Button>(R.id.camera_btn_select)
-        val gallery = view.findViewById<Button>(R.id.gallery_btn_select)
-
-        camera.setOnClickListener {
-            callCamera()
-            dialog.dismiss()
-            dialog.cancel()
-        }
-
-        gallery.setOnClickListener {
-            getAlbum()
-            dialog.dismiss()
-            dialog.cancel()
-        }
+//        val dialog = BottomSheetDialog(this)
+//        val view = layoutInflater.inflate(R.layout.dialog_select, null)
+//
+//        dialog.setContentView(view)
+//        dialog.show()
+//
+//        val camera = view.findViewById<Button>(R.id.camera_btn_select)
+//        val gallery = view.findViewById<Button>(R.id.gallery_btn_select)
+//
+//        camera.setOnClickListener {
+//            callCamera()
+//            dialog.dismiss()
+//            dialog.cancel()
+//        }
+//
+//        gallery.setOnClickListener {
+//            getAlbum()
+//            dialog.dismiss()
+//            dialog.cancel()
+//        }
+        val intent = Intent(this, SelectActivity::class.java)
+        startActivity(intent)
     }
 
 
