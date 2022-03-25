@@ -24,16 +24,21 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.marginRight
+import androidx.lifecycle.Observer
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.yoo.collectors.databinding.ActivityImageEditBinding
+import com.yoo.collectors.viewmodel.EditViewModel
 import jp.wasabeef.glide.transformations.MaskTransformation
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 
 
 class ImageEditActivity : AppCompatActivity() {
+
+    private val editViewModel: EditViewModel by viewModel()
 
     val CAMERA = arrayOf(Manifest.permission.CAMERA)
     val STORAGE = arrayOf(
@@ -56,6 +61,10 @@ class ImageEditActivity : AppCompatActivity() {
 
         binding = ActivityImageEditBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        binding.viewModel = editViewModel
+
+        setObserver()
 
         with(binding) {
             imageList = arrayOf(
@@ -106,6 +115,13 @@ class ImageEditActivity : AppCompatActivity() {
 
         }
 
+    }
+
+    private fun setObserver() {
+        editViewModel.closeEvent.observe(this) {
+            Log.d("observe", "observe")
+            onBackPressed()
+        }
     }
 
     private fun setRightMargin(imageView: ImageView, int: Int) {
@@ -209,28 +225,28 @@ class ImageEditActivity : AppCompatActivity() {
     }
 
     fun selectDialog(){
-//        val dialog = BottomSheetDialog(this)
-//        val view = layoutInflater.inflate(R.layout.dialog_select, null)
-//
-//        dialog.setContentView(view)
-//        dialog.show()
-//
-//        val camera = view.findViewById<Button>(R.id.camera_btn_select)
-//        val gallery = view.findViewById<Button>(R.id.gallery_btn_select)
-//
-//        camera.setOnClickListener {
-//            callCamera()
-//            dialog.dismiss()
-//            dialog.cancel()
-//        }
-//
-//        gallery.setOnClickListener {
-//            getAlbum()
-//            dialog.dismiss()
-//            dialog.cancel()
-//        }
-        val intent = Intent(this, SelectActivity::class.java)
-        startActivity(intent)
+        val dialog = BottomSheetDialog(this)
+        val view = layoutInflater.inflate(R.layout.dialog_select, null)
+
+        dialog.setContentView(view)
+        dialog.show()
+
+        val camera = view.findViewById<Button>(R.id.camera_btn_select)
+        val gallery = view.findViewById<Button>(R.id.gallery_btn_select)
+
+        camera.setOnClickListener {
+            callCamera()
+            dialog.dismiss()
+            dialog.cancel()
+        }
+
+        gallery.setOnClickListener {
+            getAlbum()
+            dialog.dismiss()
+            dialog.cancel()
+        }
+//        val intent = Intent(this, SelectActivity::class.java)
+//        startActivity(intent)
     }
 
 
