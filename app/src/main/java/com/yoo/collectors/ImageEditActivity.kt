@@ -29,6 +29,8 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.yoo.collectors.databinding.ActivityImageEditBinding
+import com.yoo.collectors.model.CropImage
+import com.yoo.collectors.util.Crop
 import com.yoo.collectors.viewmodel.EditViewModel
 import jp.wasabeef.glide.transformations.MaskTransformation
 import org.koin.androidx.viewmodel.ext.android.viewModel
@@ -52,74 +54,81 @@ class ImageEditActivity : AppCompatActivity() {
     private lateinit var selectedImg: CropImage
 
     lateinit var imageList: Array<ImageView>
-    lateinit var cropList: Array<Int>
+    lateinit var maskingPatternList: Array<Int>
 
     private lateinit var binding: ActivityImageEditBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         binding = ActivityImageEditBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         binding.viewModel = editViewModel
-
         setObserver()
+        initImages()
 
         with(binding) {
-            imageList = arrayOf(
-                imageView, imageView2, imageView3, imageView4
-            )
-
-            cropList = arrayOf(
-                R.drawable.crop1, R.drawable.crop2, R.drawable.crop3, R.drawable.crop4
-            )
-
             for (i in imageList.indices) {
                 val img = imageList[i]
                 img.setOnClickListener {
-                    selectedImg = CropImage(img, cropList[i])
+                    selectedImg = CropImage(img, null, maskingPatternList[i])
                     selectDialog()
                 }
             }
+        }
+    }
 
+    private fun initImages() {
+        imageList = arrayOf(
+            binding.imageView, binding.imageView2, binding.imageView3, binding.imageView4
+        )
 
-            // ㅅㅏ이즈 맞추기 임시
-            val size = Point()
-            windowManager.defaultDisplay.getRealSize(size)
-            val sizewidth = size.x
-            val displayMetrics = DisplayMetrics()
-            windowManager.defaultDisplay.getMetrics(displayMetrics)
-            val density = displayMetrics.density
+        maskingPatternList = arrayOf(
+            R.drawable.crop1, R.drawable.crop2, R.drawable.crop3, R.drawable.crop4
+        )
+        editViewModel.initImageList(imageList, maskingPatternList)
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        adjustSize()
+    }
+
+    private fun adjustSize() {
+        // ㅅㅏ이즈 맞추기 임시
+        val size = Point()
+        windowManager.defaultDisplay.getRealSize(size)
+        val sizewidth = size.x
+        val displayMetrics = DisplayMetrics()
+        windowManager.defaultDisplay.getMetrics(displayMetrics)
+        val density = displayMetrics.density
 
 //            val width = (sizewidth - (40 * density))
-            val width = sizewidth
+        val width = sizewidth
 
-            val height = width * 3f / 5
-            imageView7.layoutParams.height = height.toInt()
-            imageList.forEach { img ->
-                val calc = width * 32f / 125
-                img.layoutParams.width = calc.toInt()
-                img.layoutParams.height = calc.toInt()
-            }
-
-            Log.d("margin", "$width ${width * 16f / 1000} ${(width * 16f / 1000).toInt()} ")
-            Log.d("margin", "$width ${width * 36f / 1000} ${(width * 36f / 1000).toInt()} ")
-            Log.d("margin", "$width ${width * 45f / 1000} ${(width * 45f / 1000).toInt()} ")
-            Log.d("margin", "$width ${width * 24f / 1000} ${(width * 24f / 1000).toInt()} ")
-
-            setRightMargin(imageView, (width * 16f / 1000).toInt())
-            setTopMargin(imageView2, (width * 36f / 1000).toInt())
-            setRightMargin(imageView2, (width * 45f / 1000).toInt())
-            setTopMargin(imageView4, (width * 24f / 1000).toInt())
-
+        val height = width * 3f / 5
+        binding.imageView7.layoutParams.height = height.toInt()
+        imageList.forEach { img ->
+            val calc = width * 32f / 125
+            img.layoutParams.width = calc.toInt()
+            img.layoutParams.height = calc.toInt()
         }
 
+        Log.d("margin", "$width ${width * 16f / 1000} ${(width * 16f / 1000).toInt()} ")
+        Log.d("margin", "$width ${width * 36f / 1000} ${(width * 36f / 1000).toInt()} ")
+        Log.d("margin", "$width ${width * 45f / 1000} ${(width * 45f / 1000).toInt()} ")
+        Log.d("margin", "$width ${width * 24f / 1000} ${(width * 24f / 1000).toInt()} ")
+
+        setRightMargin(binding.imageView, (width * 16f / 1000).toInt())
+        setTopMargin(binding.imageView2, (width * 36f / 1000).toInt())
+        setRightMargin(binding.imageView2, (width * 45f / 1000).toInt())
+        setTopMargin(binding.imageView4, (width * 24f / 1000).toInt())
     }
 
     private fun setObserver() {
+        // 뒤로가기
         editViewModel.closeEvent.observe(this) {
-            Log.d("observe", "observe")
             onBackPressed()
         }
     }
@@ -172,8 +181,9 @@ class ImageEditActivity : AppCompatActivity() {
 //                        val uri = saveFile(RandomFileName(), "image/jpg", img)
 //                        selected.setImageBitmap(img)
 
-                        Glide.with(this).load(scaleCenterCrop(img, selectedImg.imageView.measuredWidth, selectedImg.imageView.measuredHeight))
-                            .apply(RequestOptions.bitmapTransform(MaskTransformation(selectedImg.cropImg)))
+                        selectedImg.croppedImg = Crop().scaleCenterCrop(img, selectedImg.imageView.measuredWidth, selectedImg.imageView.measuredHeight)
+                        Glide.with(this).load(selectedImg.croppedImg)
+                            .apply(RequestOptions.bitmapTransform(MaskTransformation(selectedImg.maskPattern!!)))
                             .into(selectedImg.imageView)
                     }
                 }
@@ -184,45 +194,16 @@ class ImageEditActivity : AppCompatActivity() {
 
                     // 여기서 크롭
                     val img = MediaStore.Images.Media.getBitmap(this.contentResolver, uri)
-                    Glide.with(this).load(scaleCenterCrop(img, selectedImg.imageView.measuredWidth, selectedImg.imageView.measuredHeight))
-                        .apply(RequestOptions.bitmapTransform(MaskTransformation(selectedImg.cropImg)))
+                    selectedImg.croppedImg = Crop().scaleCenterCrop(img, selectedImg.imageView.measuredWidth, selectedImg.imageView.measuredHeight)
+                    Glide.with(this).load(selectedImg.croppedImg)
+                        .apply(RequestOptions.bitmapTransform(MaskTransformation(selectedImg.maskPattern!!)))
                         .into(selectedImg.imageView)
                 }
             }
         }
     }
 
-    fun scaleCenterCrop(source: Bitmap, newHeight: Int, newWidth: Int): Bitmap? {
-        val sourceWidth = source.width
-        val sourceHeight = source.height
 
-        // Compute the scaling factors to fit the new height and width, respectively.
-        // To cover the final image, the final scaling will be the bigger
-        // of these two.
-        val xScale = newWidth.toFloat() / sourceWidth
-        val yScale = newHeight.toFloat() / sourceHeight
-        val scale = Math.max(xScale, yScale)
-
-        // Now get the size of the source bitmap when scaled
-        val scaledWidth = scale * sourceWidth
-        val scaledHeight = scale * sourceHeight
-
-        // Let's find out the upper left coordinates if the scaled bitmap
-        // should be centered in the new size give by the parameters
-        val left = (newWidth - scaledWidth) / 2
-        val top = (newHeight - scaledHeight) / 2
-
-        // The target rectangle for the new, scaled version of the source bitmap will now
-        // be
-        val targetRect = RectF(left, top, left + scaledWidth, top + scaledHeight)
-
-        // Finally, we create a new bitmap of the specified size and draw our new,
-        // scaled bitmap onto it.
-        val dest = Bitmap.createBitmap(newWidth, newHeight, source.config)
-        val canvas = Canvas(dest)
-        canvas.drawBitmap(source, null, targetRect, null)
-        return dest
-    }
 
     fun selectDialog(){
         val dialog = BottomSheetDialog(this)
@@ -315,9 +296,4 @@ class ImageEditActivity : AppCompatActivity() {
 
         return uri
     }
-
-    data class CropImage(
-        var imageView: ImageView,
-        var cropImg: Int
-    )
 }
