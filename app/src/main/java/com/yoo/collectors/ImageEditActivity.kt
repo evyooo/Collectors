@@ -50,9 +50,6 @@ class ImageEditActivity : AppCompatActivity() {
     val CAMERA_CODE = 98
     val STORAGE_CODE = 99
 
-    // TODO 나중에 vm으로 옮기기
-    private lateinit var selectedImg: CropImage
-
     lateinit var imageList: Array<ImageView>
     lateinit var maskingPatternList: Array<Int>
 
@@ -66,18 +63,7 @@ class ImageEditActivity : AppCompatActivity() {
         binding.viewModel = editViewModel
         setObserver()
         initImages()
-        editViewModel.setImageList()
 
-        with(binding) {
-            for (i in imageList.indices) {
-                val img = imageList[i]
-                img.setOnClickListener {
-                    viewModel!!.selected = i
-//                    selectedImg = CropImage(img, null, maskingPatternList[i])
-                    selectDialog()
-                }
-            }
-        }
     }
 
     private fun initImages() {
@@ -85,6 +71,7 @@ class ImageEditActivity : AppCompatActivity() {
             binding.imageView, binding.imageView2, binding.imageView3, binding.imageView4
         )
 
+        // TODO 이거 서버에서 받아오게 바꾸기
         maskingPatternList = arrayOf(
             R.drawable.crop1, R.drawable.crop2, R.drawable.crop3, R.drawable.crop4
         )
@@ -135,6 +122,11 @@ class ImageEditActivity : AppCompatActivity() {
         editViewModel.closeEvent.observe(this) {
             onBackPressed()
         }
+
+        // imageView 클릭시 overlay 보이기
+        editViewModel.showOverlayEvent.observe(this) {
+            selectDialog()
+        }
     }
 
     private fun setRightMargin(imageView: ImageView, int: Int) {
@@ -182,45 +174,22 @@ class ImageEditActivity : AppCompatActivity() {
                 CAMERA_CODE -> {
                     if (data?.extras?.get("data") != null) {
                         val img = data.extras?.get("data") as Bitmap
-//                        val uri = saveFile(RandomFileName(), "image/jpg", img)
-//                        selected.setImageBitmap(img)
-
                         val selectedImage = editViewModel.editedImageList[editViewModel.selected]
                         editViewModel.changeCroppedImage(Crop().scaleCenterCrop(img, selectedImage.imageView.measuredWidth, selectedImage.imageView.measuredHeight))
-//                        editViewModel.changeCroppedImage(Crop().scaleCenterCrop(img, selectedImg.imageView.measuredWidth, selectedImg.imageView.measuredHeight))
-//                        selectedImg.croppedImg = Crop().scaleCenterCrop(img, selectedImg.imageView.measuredWidth, selectedImg.imageView.measuredHeight)
-                        Glide.with(this).load(selectedImage.croppedImg)
-                            .apply(RequestOptions.bitmapTransform(MaskTransformation(selectedImage.maskPattern)))
-                            .into(selectedImage.imageView)
-//                        Glide.with(this).load(selectedImg.croppedImg)
-//                            .apply(RequestOptions.bitmapTransform(MaskTransformation(selectedImg.maskPattern!!)))
-//                            .into(selectedImg.imageView)
                     }
                 }
 
                 STORAGE_CODE -> {
-                    val uri = data?.data
-//                    selected.setImageURI(uri)
-
-                    // 여기서 크롭
-                    val img = MediaStore.Images.Media.getBitmap(this.contentResolver, uri)
+                    val img = MediaStore.Images.Media.getBitmap(this.contentResolver, data?.data)
                     val selectedImage = editViewModel.editedImageList[editViewModel.selected]
                     editViewModel.changeCroppedImage(Crop().scaleCenterCrop(img, selectedImage.imageView.measuredWidth, selectedImage.imageView.measuredHeight))
-//                    editViewModel.changeCroppedImage(Crop().scaleCenterCrop(img, selectedImg.imageView.measuredWidth, selectedImg.imageView.measuredHeight))
-//                    selectedImg.croppedImg = Crop().scaleCenterCrop(img, selectedImg.imageView.measuredWidth, selectedImg.imageView.measuredHeight)
-                    Glide.with(this).load(selectedImage.croppedImg)
-                        .apply(RequestOptions.bitmapTransform(MaskTransformation(selectedImage.maskPattern)))
-                        .into(selectedImage.imageView)
-//                    Glide.with(this).load(selectedImg.croppedImg)
-//                        .apply(RequestOptions.bitmapTransform(MaskTransformation(selectedImg.maskPattern!!)))
-//                        .into(selectedImg.imageView)
                 }
             }
         }
     }
 
 
-
+    // TODO 다이얼로그 -> 이미지뷰로 교체 예정
     fun selectDialog(){
         val dialog = BottomSheetDialog(this)
         val view = layoutInflater.inflate(R.layout.dialog_select, null)
@@ -242,8 +211,6 @@ class ImageEditActivity : AppCompatActivity() {
             dialog.dismiss()
             dialog.cancel()
         }
-//        val intent = Intent(this, SelectActivity::class.java)
-//        startActivity(intent)
     }
 
 
@@ -277,39 +244,4 @@ class ImageEditActivity : AppCompatActivity() {
         }
     }
 
-    fun RandomFileName() : String
-    {
-        val fineName = SimpleDateFormat("yyyyMMddHHmmss").format(System.currentTimeMillis())
-        return fineName
-    }
-
-    fun saveFile(fileName: String, mimeType: String, bitmap: Bitmap): Uri? {
-        var CV = ContentValues()
-        CV.put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
-        CV.put(MediaStore.Images.Media.MIME_TYPE, mimeType)
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            CV.put(MediaStore.Images.Media.IS_PENDING, 1)
-        }
-
-        val uri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, CV)
-
-        if (uri != null) {
-            var scriptor = contentResolver.openFileDescriptor(uri, "w")
-
-            if (scriptor != null) {
-                val fos = FileOutputStream(scriptor.fileDescriptor)
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos)
-                fos.close()
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    CV.clear()
-                    CV.put(MediaStore.Images.Media.IS_PENDING, 0)
-                    contentResolver.update(uri, CV, null, null)
-                }
-            }
-        }
-
-        return uri
-    }
 }

@@ -10,7 +10,12 @@ import jp.wasabeef.glide.transformations.MaskTransformation
 
 @BindingAdapter("selectedImage")
 fun ImageView.bindSelectedImage(selectedImage: CropImage) {
-    selectedImage.let {
+    if (selectedImage.croppedImg == null) {
+        Glide.with(this).load(R.color.white)
+            .apply(RequestOptions.bitmapTransform(MaskTransformation(selectedImage.maskPattern)))
+            .into(this)
+    }
+    else {
         Glide.with(this).load(selectedImage.croppedImg)
             .apply(RequestOptions.bitmapTransform(MaskTransformation(selectedImage.maskPattern)))
             .into(this)
