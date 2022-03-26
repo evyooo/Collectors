@@ -66,12 +66,14 @@ class ImageEditActivity : AppCompatActivity() {
         binding.viewModel = editViewModel
         setObserver()
         initImages()
+        editViewModel.setImageList()
 
         with(binding) {
             for (i in imageList.indices) {
                 val img = imageList[i]
                 img.setOnClickListener {
-                    selectedImg = CropImage(img, null, maskingPatternList[i])
+                    viewModel!!.selected = i
+//                    selectedImg = CropImage(img, null, maskingPatternList[i])
                     selectDialog()
                 }
             }
@@ -86,7 +88,9 @@ class ImageEditActivity : AppCompatActivity() {
         maskingPatternList = arrayOf(
             R.drawable.crop1, R.drawable.crop2, R.drawable.crop3, R.drawable.crop4
         )
-        editViewModel.initImageList(imageList, maskingPatternList)
+        if (editViewModel.editedImageList.isEmpty()) {
+            editViewModel.initImageList(imageList, maskingPatternList)
+        }
     }
 
     override fun onResume() {
@@ -181,10 +185,16 @@ class ImageEditActivity : AppCompatActivity() {
 //                        val uri = saveFile(RandomFileName(), "image/jpg", img)
 //                        selected.setImageBitmap(img)
 
-                        selectedImg.croppedImg = Crop().scaleCenterCrop(img, selectedImg.imageView.measuredWidth, selectedImg.imageView.measuredHeight)
-                        Glide.with(this).load(selectedImg.croppedImg)
-                            .apply(RequestOptions.bitmapTransform(MaskTransformation(selectedImg.maskPattern!!)))
-                            .into(selectedImg.imageView)
+                        val selectedImage = editViewModel.editedImageList[editViewModel.selected]
+                        editViewModel.changeCroppedImage(Crop().scaleCenterCrop(img, selectedImage.imageView.measuredWidth, selectedImage.imageView.measuredHeight))
+//                        editViewModel.changeCroppedImage(Crop().scaleCenterCrop(img, selectedImg.imageView.measuredWidth, selectedImg.imageView.measuredHeight))
+//                        selectedImg.croppedImg = Crop().scaleCenterCrop(img, selectedImg.imageView.measuredWidth, selectedImg.imageView.measuredHeight)
+                        Glide.with(this).load(selectedImage.croppedImg)
+                            .apply(RequestOptions.bitmapTransform(MaskTransformation(selectedImage.maskPattern)))
+                            .into(selectedImage.imageView)
+//                        Glide.with(this).load(selectedImg.croppedImg)
+//                            .apply(RequestOptions.bitmapTransform(MaskTransformation(selectedImg.maskPattern!!)))
+//                            .into(selectedImg.imageView)
                     }
                 }
 
@@ -194,10 +204,16 @@ class ImageEditActivity : AppCompatActivity() {
 
                     // 여기서 크롭
                     val img = MediaStore.Images.Media.getBitmap(this.contentResolver, uri)
-                    selectedImg.croppedImg = Crop().scaleCenterCrop(img, selectedImg.imageView.measuredWidth, selectedImg.imageView.measuredHeight)
-                    Glide.with(this).load(selectedImg.croppedImg)
-                        .apply(RequestOptions.bitmapTransform(MaskTransformation(selectedImg.maskPattern!!)))
-                        .into(selectedImg.imageView)
+                    val selectedImage = editViewModel.editedImageList[editViewModel.selected]
+                    editViewModel.changeCroppedImage(Crop().scaleCenterCrop(img, selectedImage.imageView.measuredWidth, selectedImage.imageView.measuredHeight))
+//                    editViewModel.changeCroppedImage(Crop().scaleCenterCrop(img, selectedImg.imageView.measuredWidth, selectedImg.imageView.measuredHeight))
+//                    selectedImg.croppedImg = Crop().scaleCenterCrop(img, selectedImg.imageView.measuredWidth, selectedImg.imageView.measuredHeight)
+                    Glide.with(this).load(selectedImage.croppedImg)
+                        .apply(RequestOptions.bitmapTransform(MaskTransformation(selectedImage.maskPattern)))
+                        .into(selectedImage.imageView)
+//                    Glide.with(this).load(selectedImg.croppedImg)
+//                        .apply(RequestOptions.bitmapTransform(MaskTransformation(selectedImg.maskPattern!!)))
+//                        .into(selectedImg.imageView)
                 }
             }
         }

@@ -1,7 +1,9 @@
 package com.yoo.collectors.viewmodel
 
+import android.graphics.Bitmap
 import android.util.Log
 import android.widget.ImageView
+import androidx.appcompat.resources.R
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -26,6 +28,31 @@ class EditViewModel(private val repository: EditRepository): ViewModel() {
         for (i in imgList.indices) {
             editedImageList.add(CropImage(imgList[i], null, patternList[i]))
         }
+    }
+
+    fun setImageList() {
+        // bindingAdapter 사용
+        Log.d("imageimage", editedImageList.size.toString())
+
+        for (image in editedImageList) {
+            Log.d("imageimage", image.toString())
+            if (image.croppedImg != null) {
+                Log.d("imageimage notnull", image.toString())
+                image.imageView.setImageResource(R.drawable.abc_vector_test)
+//                image.imageView.setImageBitmap(image.croppedImg)
+            }
+            else {
+                Log.d("imageimage null", image.toString())
+//                image.imageView.setImageResource(R.)
+//                Glide.with(this).load(selectedImage.croppedImg)
+//                    .apply(RequestOptions.bitmapTransform(MaskTransformation(selectedImage.maskPattern)))
+//                    .into(selectedImage.imageView)
+            }
+        }
+    }
+
+    fun changeCroppedImage(cropped: Bitmap?) {
+        editedImageList[selected].croppedImg = cropped
     }
 
 }
