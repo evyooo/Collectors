@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.provider.MediaStore
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
@@ -44,7 +45,11 @@ class CameraUtil(private val activity: Activity) {
             CAMERA_CODE -> {
                 for (grant in grantResults) {
                     if (grant != PackageManager.PERMISSION_GRANTED) {
-                        Toast.makeText(activity, R.string.toast_permission_camera, Toast.LENGTH_LONG).show()
+                        Toast.makeText(
+                            activity,
+                            R.string.toast_permission_camera,
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
                 }
             }
@@ -52,11 +57,36 @@ class CameraUtil(private val activity: Activity) {
             STORAGE_CODE -> {
                 for (grant in grantResults) {
                     if (grant != PackageManager.PERMISSION_GRANTED) {
-                        Toast.makeText(activity, R.string.toast_permission_gallery, Toast.LENGTH_LONG).show()
+                        Toast.makeText(
+                            activity,
+                            R.string.toast_permission_gallery,
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
                 }
             }
         }
+    }
+
+    fun callbackResult(
+        requestCode: Int,
+        resultCode: Int,
+        data: Intent?
+    ): Bitmap? {
+        if (resultCode == Activity.RESULT_OK) {
+            when (requestCode) {
+                CAMERA_CODE -> {
+                    if (data?.extras?.get("data") != null) {
+                        return data.extras?.get("data") as Bitmap
+                    }
+                }
+
+                STORAGE_CODE -> {
+                    return MediaStore.Images.Media.getBitmap(activity.contentResolver, data?.data)
+                }
+            }
+        }
+        return null
     }
 
     fun callCamera() {

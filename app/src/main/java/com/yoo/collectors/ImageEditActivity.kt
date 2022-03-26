@@ -1,17 +1,13 @@
 package com.yoo.collectors
 
-import android.app.Activity
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Point
 import android.os.Bundle
-import android.provider.MediaStore
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.View
 import android.widget.ImageView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import com.yoo.collectors.databinding.ActivityImageEditBinding
@@ -132,25 +128,16 @@ class ImageEditActivity : AppCompatActivity() {
         cameraUtil.requestPermissionResult(requestCode, grantResults)
     }
 
+    // TODO registerForActivityResult로 교체
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
-        if (resultCode == Activity.RESULT_OK) {
-            when (requestCode) {
-                CAMERA_CODE -> {
-                    if (data?.extras?.get("data") != null) {
-                        val img = data.extras?.get("data") as Bitmap
-                        val selectedImage = editViewModel.editedImageList[editViewModel.selected]
-                        editViewModel.changeCroppedImage(Crop().scaleCenterCrop(img, selectedImage.imageView.measuredWidth, selectedImage.imageView.measuredHeight))
-                    }
-                }
+        val resultBitmap = cameraUtil.callbackResult(requestCode, resultCode, data)
+        if (resultBitmap != null) setSelected(resultBitmap)
+    }
 
-                STORAGE_CODE -> {
-                    val img = MediaStore.Images.Media.getBitmap(this.contentResolver, data?.data)
-                    val selectedImage = editViewModel.editedImageList[editViewModel.selected]
-                    editViewModel.changeCroppedImage(Crop().scaleCenterCrop(img, selectedImage.imageView.measuredWidth, selectedImage.imageView.measuredHeight))
-                }
-            }
-        }
+    private fun setSelected(bitmap: Bitmap) {
+        val selectedImage = editViewModel.editedImageList[editViewModel.selected]
+        editViewModel.changeCroppedImage(Crop().scaleCenterCrop(bitmap, selectedImage.imageView.measuredWidth, selectedImage.imageView.measuredHeight))
     }
 }
