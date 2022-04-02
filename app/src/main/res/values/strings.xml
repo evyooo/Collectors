@@ -3,4 +3,13 @@
     <string name="menu_feed">피드</string>
     <string name="menu_gallery">갤러리</string>
     <string name="menu_star">찜하기</string>
+
+    <string name="button_back">뒤로가기</string>
+
+    <string name="select_camera">사진찍기</string>
+    <string name="select_gallery">갤러리에서\n가져오기</string>
+
+    <string name="toast_permission_camera">카메라 권한을 승인해 주세요</string>
+    <string name="toast_permission_gallery">저장소 권한을 승인해 주세요</string>
+
 </resources>

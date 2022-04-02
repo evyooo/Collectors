@@ -1,67 +1,136 @@
 package com.yoo.collectors
 
-import android.Manifest
-import android.app.Activity
-import android.content.ContentValues
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.graphics.*
-import android.net.Uri
-import android.os.Build
+import android.graphics.Bitmap
+import android.graphics.Point
 import android.os.Bundle
-import android.provider.MediaStore
+import android.util.DisplayMetrics
 import android.util.Log
 import android.view.View
-import android.widget.Button
 import android.widget.ImageView
-import android.widget.ImageView.ScaleType
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
-import com.google.android.material.bottomsheet.BottomSheetDialog
+import androidx.constraintlayout.widget.ConstraintLayout
 import com.yoo.collectors.databinding.ActivityImageEditBinding
-import java.io.FileOutputStream
-import java.text.SimpleDateFormat
+import com.yoo.collectors.util.CameraUtil
+import com.yoo.collectors.util.Crop
+import com.yoo.collectors.viewmodel.EditViewModel
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
 
 class ImageEditActivity : AppCompatActivity() {
 
-    val CAMERA = arrayOf(Manifest.permission.CAMERA)
-    val STORAGE = arrayOf(
-        Manifest.permission.READ_EXTERNAL_STORAGE,
-        Manifest.permission.WRITE_EXTERNAL_STORAGE
-    )
-    val CAMERA_CODE = 98
-    val STORAGE_CODE = 99
-
-    // TODO 나중에 vm으로 옮기기
-    private lateinit var selected: ImageView
-
     lateinit var imageList: Array<ImageView>
+    lateinit var cameraUtil: CameraUtil
+
+    private val editViewModel: EditViewModel by viewModel()
     private lateinit var binding: ActivityImageEditBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         binding = ActivityImageEditBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        Log.d("imageeditimageedit", "onCreate")
 
-        with(binding) {
-            imageList = arrayOf(
-                imageView, imageView2, imageView3, imageView4
-            )
+        binding.viewModel = editViewModel
+        initImages()
 
-            imageList.forEach { img ->
-                img.setOnClickListener {
-                    selected = img
-                    selectDialog()
-                }
-            }
-        }
+        setObserver()
+        adjustSize()
+
+        cameraUtil = CameraUtil(this)
 
     }
 
+//    override fun onResume() {
+//        super.onResume()
+//        Log.d("imageeditimageedit", "onResume")
+//    }
+
+    private fun setObserver() {
+        // 뒤로가기
+        editViewModel.closeEvent.observe(this) {
+            onBackPressed()
+        }
+
+        // imageView 클릭시 overlay 보이기
+        editViewModel.showOverlayEvent.observe(this) {
+            binding.overlayClEdit.visibility = View.VISIBLE
+        }
+
+        editViewModel.hideOverlayEvent.observe(this) {
+            binding.overlayClEdit.visibility = View.GONE
+        }
+
+        editViewModel.selectCameraEvent.observe(this) {
+            cameraUtil.callCamera()
+        }
+
+        editViewModel.selectGalleryEvent.observe(this) {
+            cameraUtil.callGallery()
+        }
+
+        editViewModel.editImageList.forEach { it.observe(this) { ci ->
+            Log.d("imageeditimageedit3", "$ci")
+            Log.d("imageeditimageedit4", "${it.value?.croppedImg}")
+        } }
+    }
+
+    private fun initImages() {
+        imageList = arrayOf(
+            binding.imageView, binding.imageView2, binding.imageView3, binding.imageView4
+        )
+
+//        if (editViewModel.editedImageList.isEmpty()) {
+//            editViewModel.initImageList(imageList)
+//        }
+        if (editViewModel.editImageList.isEmpty()) {
+            Log.d("imageeditimageedit", "isempty")
+            editViewModel.initImageList(imageList)
+        }
+    }
+
+    private fun adjustSize() {
+        // ㅅㅏ이즈 맞추기 임시
+        val size = Point()
+        windowManager.defaultDisplay.getRealSize(size)
+        val sizewidth = size.x
+        val displayMetrics = DisplayMetrics()
+        windowManager.defaultDisplay.getMetrics(displayMetrics)
+        val density = displayMetrics.density
+
+//            val width = (sizewidth - (40 * density))
+        val width = sizewidth
+
+        val height = width * 3f / 5
+        binding.backgroundIvEdit.layoutParams.height = height.toInt()
+        imageList.forEach { img ->
+            val calc = width * 32f / 125
+            img.layoutParams.width = calc.toInt()
+            img.layoutParams.height = calc.toInt()
+        }
+
+        Log.d("margin", "$width ${width * 16f / 1000} ${(width * 16f / 1000).toInt()} ")
+        Log.d("margin", "$width ${width * 36f / 1000} ${(width * 36f / 1000).toInt()} ")
+        Log.d("margin", "$width ${width * 45f / 1000} ${(width * 45f / 1000).toInt()} ")
+        Log.d("margin", "$width ${width * 24f / 1000} ${(width * 24f / 1000).toInt()} ")
+
+        setRightMargin(binding.imageView, (width * 16f / 1000).toInt())
+        setTopMargin(binding.imageView2, (width * 36f / 1000).toInt())
+        setRightMargin(binding.imageView2, (width * 45f / 1000).toInt())
+        setTopMargin(binding.imageView4, (width * 24f / 1000).toInt())
+    }
+
+
+
+    private fun setRightMargin(imageView: ImageView, int: Int) {
+        val layoutParams: ConstraintLayout.LayoutParams = imageView.layoutParams as ConstraintLayout.LayoutParams
+        layoutParams.marginEnd = int
+    }
+
+    private fun setTopMargin(imageView: ImageView, int: Int) {
+        val layoutParams: ConstraintLayout.LayoutParams = imageView.layoutParams as ConstraintLayout.LayoutParams
+        layoutParams.topMargin = int
+    }
 
     override fun onRequestPermissionsResult(
         requestCode: Int,
@@ -69,134 +138,22 @@ class ImageEditActivity : AppCompatActivity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        when (requestCode) {
-            CAMERA_CODE -> {
-                for (grant in grantResults) {
-                    if (grant != PackageManager.PERMISSION_GRANTED) {
-                        Toast.makeText(this, "카메라 권한을 승인해 주세요.", Toast.LENGTH_LONG).show()
-                    }
-                }
-            }
-
-            STORAGE_CODE -> {
-                for (grant in grantResults) {
-                    if (grant != PackageManager.PERMISSION_GRANTED) {
-                        Toast.makeText(this, "저장소 권한을 승인해 주세요.", Toast.LENGTH_LONG).show()
-                        //finish() 앱을 종료함
-                    }
-                }
-            }
-        }
+        cameraUtil.requestPermissionResult(requestCode, grantResults)
     }
 
+    // TODO registerForActivityResult로 교체
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
-        if (resultCode == Activity.RESULT_OK) {
-            when (requestCode) {
-                CAMERA_CODE -> {
-                    if (data?.extras?.get("data") != null) {
-                        val img = data.extras?.get("data") as Bitmap
-//                        val uri = saveFile(RandomFileName(), "image/jpg", img)
-                        selected.setImageBitmap(img)
-                    }
-                }
-
-                STORAGE_CODE -> {
-                    val uri = data?.data
-                    selected.setImageURI(uri)
-                }
-            }
-        }
+        val resultBitmap = cameraUtil.callbackResult(requestCode, resultCode, data)
+        if (resultBitmap != null) setSelected(resultBitmap)
     }
 
-    fun selectDialog(){
-        val dialog = BottomSheetDialog(this)
-        val view = layoutInflater.inflate(R.layout.dialog_select, null)
-
-        dialog.setContentView(view)
-        dialog.show()
-
-        val camera = view.findViewById<Button>(R.id.camera_btn_select)
-        val gallery = view.findViewById<Button>(R.id.gallery_btn_select)
-
-        camera.setOnClickListener {
-            callCamera()
-            dialog.dismiss()
-            dialog.cancel()
-        }
-
-        gallery.setOnClickListener {
-            getAlbum()
-            dialog.dismiss()
-            dialog.cancel()
-        }
-    }
-
-
-    fun checkPermission(permissions: Array<out String>, type: Int): Boolean {
-        for (permission in permissions) {
-            if (ContextCompat.checkSelfPermission(
-                    this,
-                    permission
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                ActivityCompat.requestPermissions(this, permissions, type)
-                return false
-            }
-        }
-
-        return true
-    }
-
-    private fun callCamera() {
-        if (checkPermission(CAMERA, CAMERA_CODE) && checkPermission(STORAGE, STORAGE_CODE)) {
-            val itt = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-            startActivityForResult(itt, CAMERA_CODE)
-        }
-    }
-
-    fun getAlbum() {
-        if (checkPermission(STORAGE, STORAGE_CODE)) {
-            val itt = Intent(Intent.ACTION_PICK)
-            itt.type = MediaStore.Images.Media.CONTENT_TYPE
-            startActivityForResult(itt, STORAGE_CODE)
-        }
-    }
-
-    fun RandomFileName() : String
-    {
-        val fineName = SimpleDateFormat("yyyyMMddHHmmss").format(System.currentTimeMillis())
-        return fineName
-    }
-
-    fun saveFile(fileName: String, mimeType: String, bitmap: Bitmap): Uri? {
-        var CV = ContentValues()
-        CV.put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
-        CV.put(MediaStore.Images.Media.MIME_TYPE, mimeType)
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            CV.put(MediaStore.Images.Media.IS_PENDING, 1)
-        }
-
-        val uri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, CV)
-
-        if (uri != null) {
-            var scriptor = contentResolver.openFileDescriptor(uri, "w")
-
-            if (scriptor != null) {
-                val fos = FileOutputStream(scriptor.fileDescriptor)
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos)
-                fos.close()
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    CV.clear()
-                    CV.put(MediaStore.Images.Media.IS_PENDING, 0)
-                    contentResolver.update(uri, CV, null, null)
-                }
-            }
-        }
-
-        return uri;
+    private fun setSelected(bitmap: Bitmap) {
+        Log.d("imageeditimageedit2", "setselected")
+//        val selectedImage = editViewModel.editedImageList[editViewModel.selected]
+        val selectedImage = editViewModel.editImageList[editViewModel.selected].value!!
+//        editViewModel.changeCroppedImage(Crop().scaleCenterCrop(bitmap, selectedImage.imageView.measuredWidth, selectedImage.imageView.measuredHeight))
+        editViewModel.changeCroppedImage(Crop().scaleCenterCrop(bitmap, selectedImage.imageView.measuredWidth, selectedImage.imageView.measuredHeight))
     }
 }
