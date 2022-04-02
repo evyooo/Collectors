@@ -19,9 +19,6 @@ import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class ImageEditActivity : AppCompatActivity() {
 
-    val CAMERA_CODE = 98
-    val STORAGE_CODE = 99
-
     lateinit var imageList: Array<ImageView>
     lateinit var cameraUtil: CameraUtil
 
@@ -32,15 +29,22 @@ class ImageEditActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityImageEditBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        Log.d("imageeditimageedit", "onCreate")
 
         binding.viewModel = editViewModel
-        setObserver()
         initImages()
+
+        setObserver()
         adjustSize()
 
         cameraUtil = CameraUtil(this)
 
     }
+
+//    override fun onResume() {
+//        super.onResume()
+//        Log.d("imageeditimageedit", "onResume")
+//    }
 
     private fun setObserver() {
         // 뒤로가기
@@ -64,6 +68,11 @@ class ImageEditActivity : AppCompatActivity() {
         editViewModel.selectGalleryEvent.observe(this) {
             cameraUtil.callGallery()
         }
+
+        editViewModel.editImageList.forEach { it.observe(this) { ci ->
+            Log.d("imageeditimageedit3", "$ci")
+            Log.d("imageeditimageedit4", "${it.value?.croppedImg}")
+        } }
     }
 
     private fun initImages() {
@@ -71,7 +80,11 @@ class ImageEditActivity : AppCompatActivity() {
             binding.imageView, binding.imageView2, binding.imageView3, binding.imageView4
         )
 
-        if (editViewModel.editedImageList.isEmpty()) {
+//        if (editViewModel.editedImageList.isEmpty()) {
+//            editViewModel.initImageList(imageList)
+//        }
+        if (editViewModel.editImageList.isEmpty()) {
+            Log.d("imageeditimageedit", "isempty")
             editViewModel.initImageList(imageList)
         }
     }
@@ -137,7 +150,10 @@ class ImageEditActivity : AppCompatActivity() {
     }
 
     private fun setSelected(bitmap: Bitmap) {
-        val selectedImage = editViewModel.editedImageList[editViewModel.selected]
+        Log.d("imageeditimageedit2", "setselected")
+//        val selectedImage = editViewModel.editedImageList[editViewModel.selected]
+        val selectedImage = editViewModel.editImageList[editViewModel.selected].value!!
+//        editViewModel.changeCroppedImage(Crop().scaleCenterCrop(bitmap, selectedImage.imageView.measuredWidth, selectedImage.imageView.measuredHeight))
         editViewModel.changeCroppedImage(Crop().scaleCenterCrop(bitmap, selectedImage.imageView.measuredWidth, selectedImage.imageView.measuredHeight))
     }
 }
